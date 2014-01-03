@@ -1,0 +1,221 @@
+#!/usr/bin/env python
+
+##
+## Author:Mario Ghersi
+##
+
+import webapp2
+import httplib2, tweepy ## libs
+# from tweepy.streaming import StreamListener
+# from tweepy import OAuthHandler
+# from tweepy import Stream
+
+# Go to http://dev.twitter.com and create an app.
+# The consumer key and secret will be generated for you after
+consumer_key="Zx5JqalkIbOFVye237Saag"
+consumer_secret="73HWzqCCcmdJblYjXolWXtkBoxr1JTe0RcyljSEMZQ"
+
+# After the step above, you will be redirected to your app's page.
+# Create an access token under the the "Your access token" section
+access_token="14729198-1QLhbl8U3qRWb2phGK0OUx8DMeMfLunc3jrlEFhYd"
+access_token_secret="tqAsSh8J4yOEmNHSXaKDNhtkqVyzgEFYgkFay97zXoL1h"
+
+tweetText = "NIL"
+golde = "NIL"
+jugador = "NIL"
+resultado = "NIL"
+equipoLocal = "NIL"
+equipoVisitante = "NIL"
+mensaje = "NIL"
+
+class StdOutListener(StreamListener):
+    """ A listener handles tweets are the received from the stream.
+    This is a basic listener that just prints received tweets to stdout.
+
+    """
+    def on_status(self, status):
+        # Prints the text of the tweet
+        print('@ Tweet text: ' + status.text)
+        
+        tweetText = status.text
+        if tweetText.startswith("Gol de "): 
+		if tweetText.count(':') >= 2:
+			########### Limpieza de texto
+			primercorte = tweetText.find(":")
+			## print('@@@@@ Primercorte: %s' % primercorte)
+			golde = tweetText[0:primercorte]
+			print('@@ gol_de: ' + golde)
+			###########
+			jugador = tweetText[primercorte + 2:]
+			segundocorte = jugador.find(":")
+			## print('@@@@@ Segundocorte: %s' % segundocorte)
+			jugador = jugador[:segundocorte]
+			print('@@@ Jugador: ' + jugador)
+			###########
+			resultado = tweetText[primercorte + 2 + segundocorte + 2:]
+			tercercorte = resultado.find(".")
+			## print('@@@@@ Tercercorte: %s' % tercercorte)
+			resultado = resultado[:tercercorte]
+			print('@@@@@ Resultado: ' + resultado)
+		
+			#############
+			equipos = ["San Lorenzo", "Racing", "River", "Newell", "Lanus", "Arsenal", "Velez", "Boca", "Estudiantes LP", "Rafaela", "Argentinos", "Godoy Cruz", "Belgrano", "Rosario Central", "Gimnasia LP", "Quilmes", "All Boys", "Tigre"]
+
+			for equipoLocal in equipos:
+				equipolocal = ": " + equipoLocal
+				controlLocal = tweetText.find(equipolocal)
+
+				if controlLocal > 0:
+					print('@@@@@@ Equipo Local: ' + equipoLocal)
+					## print('@@@@@ Local: %s' % controlLocal)
+					break
+				else:
+					# Siguiente
+					continue
+	
+			else:
+				print "@@@@@ Error con el equipo Local"
+				pass
+
+
+			for equipoVisitante in equipos:
+				equipolocal = "- " + equipoVisitante
+				controlVisitante = tweetText.find(equipolocal)
+	
+				if controlVisitante > 0:
+					print('@@@@@@@ Equipo Visitante: ' + equipoVisitante)
+					## print('@@@@@ Visitante: %s' % controlVisitante)
+					break
+				else:
+					# Siguiente
+					continue
+	
+			else:
+				print "@@@@@ Error con el equipo Visitante"
+				pass
+			#############
+			mensaje = golde + "*"
+			mensaje = mensaje + jugador
+			mensaje = mensaje + "*"
+			mensaje = mensaje + resultado
+			mensaje = mensaje + "*"
+			mensaje = mensaje + equipoLocal
+			mensaje = mensaje + "*"
+			mensaje = mensaje + equipoVisitante
+			print ('@@@@@@@@ Mensaje: ' + mensaje)
+			#############
+			flagGol = 1
+			
+			## Manda la Notificacion
+			import json,httplib
+			connection = httplib.HTTPSConnection('api.parse.com', 443)
+			connection.connect()
+			connection.request('POST', '/1/push', json.dumps({
+					"channels": [
+						equipoLocal,
+						equipoVisitante],
+					"data": {
+					"alert": tweetText}
+			}), {"X-Parse-Application-Id": "Q1kJmsdY0xevcCpQGN86iq9NBgjlos09mf41zX28",
+				"X-Parse-REST-API-Key": "vn4KPKLlvRrFJFA1KsnAotIdQDNiHzGh2xqQY1yI",
+				"Content-Type": "application/json"})
+			resultNoti = json.loads(connection.getresponse().read())
+			print resultNoti
+			
+			## Grabar los datos
+			import json,httplib
+			connection = httplib.HTTPSConnection('api.parse.com', 443)
+			connection.connect()
+			connection.request('POST', '/1/classes/Goles', json.dumps({
+					"gol_de": golde,
+					"jugador": jugador,
+					"resultado": resultado,
+					"local": equipoLocal,
+					"visitante": equipoVisitante,
+					"notifyStatus": resultNoti
+			}), {
+				"X-Parse-Application-Id": "Q1kJmsdY0xevcCpQGN86iq9NBgjlos09mf41zX28",
+				"X-Parse-REST-API-Key": "vn4KPKLlvRrFJFA1KsnAotIdQDNiHzGh2xqQY1yI",
+				"Content-Type": "application/json"})
+			result = json.loads(connection.getresponse().read())
+			print result
+
+			## Manda Email        
+			import json,httplib
+			connection = httplib.HTTPSConnection('api.parse.com', 443)
+			connection.connect()
+			mensaje = status.text
+			connection.request('POST', '/1/functions/emailSend', json.dumps({"movie": mensaje}), {"X-Parse-Application-Id": "Q1kJmsdY0xevcCpQGN86iq9NBgjlos09mf41zX28","X-Parse-REST-API-Key": "vn4KPKLlvRrFJFA1KsnAotIdQDNiHzGh2xqQY1yI","Content-Type": "application/json"})
+			result = json.loads(connection.getresponse().read())
+			print result
+	
+		else:
+			flagGol = 0
+	else:
+		flagGol = 0
+	
+	print ("@@@@@@@@@ FlagGol: %s" % flagGol)
+	
+        return True
+        
+ ##   def on_data(self, data):
+ ##       print data
+ ##       return True
+
+	def on_error(self, status):
+		print status
+		return True
+        
+	def on_timeout(self):
+		print('Timeout...')
+		return True # To continue listening
+
+		
+"""
+if __name__ == '__main__':
+    l = StdOutListener()
+    auth = OAuthHandler(consumer_key, consumer_secret)
+    auth.set_access_token(access_token, access_token_secret)
+
+    stream = Stream(auth, l)
+   ## stream.filter(follow=[2227313048]) ## Test Mario
+    stream.filter(follow=[838352730]) ## Futbol para Todos
+"""
+	
+	
+	
+	
+"""
+The main application. There are two endpoints that are relevant: 
+	1. seed tweets
+	2. publish a tweet
+"""
+app = webapp2.WSGIApplication([
+    ('/cron/seed_tweets', CronSeedTweetsHandler),
+    ('/cron/tweet', CronTweetHandler)
+], debug=dev_env)
+
+def main():
+	run_wsgi_app(app)
+
+if __name__ == '__main__':
+
+	logging.debug('Afa test debug level')
+	logging.info('Afa test info level')
+	logging.warning('Afa test warning level')
+	logging.error('Afa test error level')
+	logging.critical('Afa test critical level')
+	logger.info("<<< Comienzo! >>>")
+	
+	l = StdOutListener()
+    auth = OAuthHandler(consumer_key, consumer_secret)
+    auth.set_access_token(access_token, access_token_secret)
+
+    stream = Stream(auth, l)
+    stream.filter(follow=[2227313048]) ## Test Mario
+  ##  stream.filter(follow=[838352730]) ## Futbol para Todos
+	
+	main()
+	logger.info("<<< espues de main >>>")
+
+	
