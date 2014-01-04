@@ -1,0 +1,7 @@
+PyRSS2Gen==1.0.0
+python-dateutil==1.5
+pytz==2012d
+virtualenv==1.11
+virtualenv-clone==0.2.4
+virtualenvwrapper==4.1.1
+wsgiref==0.1.2
