@@ -1,3 +1,6 @@
+import newrelic.agent
+newrelic.agent.initialize('newrelic.ini')
+
 from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler
 from tweepy import Stream
